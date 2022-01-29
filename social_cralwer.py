@@ -1,6 +1,9 @@
 import pandas as pd
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
+from bs4 import BeautifulSoup
+from django.http import response
+import requests
 
 chrome_options = webdriver.ChromeOptions()
 chrome_options.add_argument('--headless')
@@ -10,7 +13,7 @@ chrome_options.add_argument('--disable-dev-shm-usage')
 
 
 
-def scrapping(wd, url):
+def nurim(wd, url):
     wd.get(url) 
 
     #데이터프레임 생성
@@ -58,6 +61,24 @@ def scrapping(wd, url):
     
     return df
 
+def mohw(wd):
+    url = 'https://www.mohw.go.kr/react/policy/index.jsp?PAR_MENU_ID=06&MENU_ID=06370109&PAGE=9'
+
+    response = requests.get(url)
+
+    html = response.text
+    soup = BeautifulSoup(html,'html.parser')
+    data = soup.find_all('tbody', {'class':'th_center'})
+
+    th = soup.select('tr > th')
+    td = soup.select('tr > td')
+    for i in th:
+        print(i.get_text())
+
+    for j in td:
+        print(j.get_text())
+    
+
 def run():
     wd =  webdriver.Chrome('chromedriver',options=chrome_options)
     wd.implicitly_wait(10)
@@ -68,11 +89,11 @@ def run():
     url2 = "https://www.ggnurim.or.kr/main/uss/olp/faq/FaqListInqire.do?qestnCn=10"
     
     
-    df1 = scrapping(wd,url1)
-    df2 = scrapping(wd,url2)
-    df = pd.concat([df1, df2])
+    df1 = nurim(wd,url1)
+    df2 = nurim(wd,url2)
+    nurim = pd.concat([df1, df2])
 
-    df.to_csv(f'data/nurim.csv',encoding='utf-8-sig',index=False)
+    nurim.to_csv(f'data/nurim.csv',encoding='utf-8-sig',index=False)
     wd.close()
 
     
