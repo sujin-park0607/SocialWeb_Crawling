@@ -1,105 +1,83 @@
-import pandas as pd
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
 from bs4 import BeautifulSoup
 from django.http import response
 import requests
+from html_table_parser import parser_functions as parser
+import pandas as pd
 
-chrome_options = webdriver.ChromeOptions()
-chrome_options.add_argument('--headless')
-chrome_options.add_argument('--no-sandbox')
-chrome_options.add_argument('--disable-dev-shm-usage')
+class DataCrawler():
+    def __init__(self):
+        pass
 
-
-
-
-def nurim(wd, url):
-    wd.get(url) 
-
-    #데이터프레임 생성
-    df = pd.DataFrame(columns = ("프로그램","내용","대상","지원내용","신청방법","기관"))
-
-    
-    for i in range(10):
-        #창 클릭하기
-        x_count = i+1
-        xpath = '//*[@id="accordion"]/h3[{}]/a'.format(x_count)
-        program = wd.find_element_by_xpath(xpath).text
-        program = program.replace("Q.","")
+    def parser_soup(self,url):
+        response = requests.get(url)
+        html = response.text
+        soup = BeautifulSoup(html,'html.parser')
+        return soup
         
-        wd.find_element_by_xpath(xpath).click()
-        wd.implicitly_wait(10)
-        
-        answer_box_id = 'an_0{}'.format(i)
-        text = wd.find_element_by_id(answer_box_id).text
 
-        #받아온 데이터 문자열처리하기 
-        temp_list = text \
-        .replace("□ 지원대상", "|T|") \
-        .replace("□ 서비스대상","|T|") \
-        .replace("□ 지원내용", "|T|") \
-        .replace("□ 신청방법 및 문의", "|T|") \
-        .replace("□ 출처:", "|T|") \
-        .replace("□ 최종수정일:", "|T|") \
-        .split("|T|")
+    def dasadgym(self):
+        url = 'http://dasadgym.or.kr/menu03_06.php'
+        soup = self.parser_soup(url)
+
+        data = soup.find_all('table',{'class':'exercise_main'})
+
+        table1 = parser.make2d(data[0])
+        table2 = parser.make2d(data[1])
+
+        df1 = pd.DataFrame(data=table1[1:], columns=table1[0])
+        df2 = pd.DataFrame(data=table2[1:], columns=table2[0])
 
 
-        temp_list = [i.strip().replace("\n\n", "\n") for i in temp_list]
-        temp_list[1:-1] = [i.strip().split("\n") for i in temp_list[1:-1]]
-        temp_list[-1] = temp_list[-1].split(" ")[0]
+        gym_df = pd.concat([df1,df2])
+        return gym_df
+        # df.to_csv('data/dasadgym.csv',encoding='utf-8-sig',index=False)
 
-        #인덱스로 각자 필요한 항목 변수지정
-        content = temp_list[0]
-        target = temp_list[1]
-        support = temp_list[2]
-        application = temp_list[3]
-        
-        if len(temp_list)== 6:
-            company = temp_list[4]
-        else: company = " "
-        df.loc[i] = [program,content,target,support,application,company]
-    
-    return df
+    def nrc(self):
+        url = 'http://www.nrc.go.kr/hospital/html/content.do?depth=pr&menu_cd=02_03_02_02'
+        soup = self.parser_soup(url)
 
-def mohw(wd):
-    url = 'https://www.mohw.go.kr/react/policy/index.jsp?PAR_MENU_ID=06&MENU_ID=06370109&PAGE=9'
+        data = soup.find('table')
+        table = parser.make2d(data)
 
-    response = requests.get(url)
+        df = pd.DataFrame(data = table[1:], columns = table[0])
+        nrc_df = df.transpose()
 
-    html = response.text
-    soup = BeautifulSoup(html,'html.parser')
-    data = soup.find_all('tbody', {'class':'th_center'})
-
-    th = soup.select('tr > th')
-    td = soup.select('tr > td')
-    for i in th:
-        print(i.get_text())
-
-    for j in td:
-        print(j.get_text())
-    
-
-def run():
-    wd =  webdriver.Chrome('chromedriver',options=chrome_options)
-    wd.implicitly_wait(10)
-
-    #재활 페이지
-    url1 = "https://www.ggnurim.or.kr/main/uss/olp/faq/FaqListInqire.do?qestnCn=8"
-    #신체건강 페이지
-    url2 = "https://www.ggnurim.or.kr/main/uss/olp/faq/FaqListInqire.do?qestnCn=10"
-    
-    
-    df1 = nurim(wd,url1)
-    df2 = nurim(wd,url2)
-    nurim = pd.concat([df1, df2])
-
-    nurim.to_csv(f'data/nurim.csv',encoding='utf-8-sig',index=False)
-    wd.close()
-
-    
-if __name__=="__main__":
-    run()
+        # df.to_csv(f'data/nrc.csv',encoding='utf-8-sig',index=False)
+        return nrc_df
 
 
+    def ic_sports(self):
+        url = 'http://ic-sports.or.kr/bbs/page.php?hid=cont_0301'
+
+        soup = self.parser_soup(url)
+
+        data = soup.find('table',{'class','clr_ct_tb01'})
+        table = parser.make2d(data)
+        for t in table:
+            for i in range(7):
+                t[i] = t[i].replace('\r\n\t\t\t\t','')
+
+        ic_sports_df = pd.DataFrame(data = table[1:], columns = table[0])
+        # df.to_csv('data/ic_sports.csv',encoding='utf-8-sig',index=False)
+        return ic_sports_df
 
 
+    def mohw(self):
+        url = 'https://www.mohw.go.kr/react/policy/index.jsp?PAR_MENU_ID=06&MENU_ID=06370109&PAGE=9'
+
+        soup = self.parser_soup(url)
+        data = soup.find('table')
+
+        table = parser.make2d(data)
+
+        mohw_df = pd.DataFrame(data = table[1:],columns = table[0] )
+        # df.to_csv(f'data/mohw.csv', index=False, encoding='utf-8-sig')
+        return mohw_df
+
+
+if __name__=='__main__':
+    crawler = DataCrawler()
+    print(crawler.dasadgym())
+    print(crawler.ic_sports())
+    print(crawler.mohw())
+    print(crawler.nrc())
