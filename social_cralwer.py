@@ -46,7 +46,7 @@ class DataCrawler():
 
 
         gym_df = pd.concat([df1,df2])
-        gym_df.to_csv('data/dasadgym.csv',encoding='utf-8-sig',index=False)
+        gym_df.to_csv('data/대구광역시장애인국민체육센터.csv',encoding='utf-8-sig',index=False)
         return gym_df
         
     #보건복지부 국립재활원 
@@ -60,7 +60,7 @@ class DataCrawler():
         df = pd.DataFrame(data = table[1:], columns = table[0])
         nrc_df = df.transpose()
 
-        df.to_csv(f'data/nrc.csv',encoding='utf-8-sig',index=False)
+        df.to_csv(f'data/보건복지부국립재활원.csv',encoding='utf-8-sig',index=False)
         return nrc_df
 
     #인천광역시장애인 국민체육센터
@@ -76,7 +76,7 @@ class DataCrawler():
                 t[i] = t[i].replace('\r\n\t\t\t\t','')
 
         ic_sports_df = pd.DataFrame(data = table[1:], columns = table[0])
-        ic_sports_df.to_csv('data/ic_sports.csv',encoding='utf-8-sig',index=False)
+        ic_sports_df.to_csv('data/인천장애인국민체육센터.csv',encoding='utf-8-sig',index=False)
         return ic_sports_df
 
     #보건복지부 장애인정책 
@@ -89,7 +89,7 @@ class DataCrawler():
         table = parser.make2d(data)
 
         mohw_df = pd.DataFrame(data = table[1:],columns = table[0] )
-        mohw_df.to_csv(f'data/mohw.csv', index=False, encoding='utf-8-sig')
+        mohw_df.to_csv(f'data/보건복지부장애인정책.csv', index=False, encoding='utf-8-sig')
         return mohw_df
 
     #대구광역시 서구건강체력관 
@@ -127,7 +127,7 @@ class DataCrawler():
         df3 = pd.DataFrame(data=table3, columns = Column3)
 
         skwelfare_df = pd.concat([df1,df2,df3])
-        skwelfare_df.to_csv(f'data/skwelfare.csv',encoding='utf-8-sig',index=False)
+        skwelfare_df.to_csv(f'data/대구서구건강체력관.csv',encoding='utf-8-sig',index=False)
         return skwelfare_df
     
     #경기도 장애인 복지 종합 지원센터 누림-실행함수 
@@ -145,7 +145,7 @@ class DataCrawler():
         nurim_df = pd.concat([df1, df2])
 
         # print(nurim_df)
-        nurim_df.to_csv(f'data/nurim.csv',encoding='utf-8-sig',index=False)
+        nurim_df.to_csv(f'data/경기도지원센터누림.csv',encoding='utf-8-sig',index=False)
         wd.close()
         return nurim_df
 
@@ -277,7 +277,7 @@ class DataCrawler():
         self.fir_df = pd.DataFrame(self.dic,columns=self.dic.keys(), index=self.dic['번호'])
         # self.fir_df = self.fir_df.sort_values('번호', ascending = True)##인덱스 제거로 인한 정렬 불필요
         self.fin_df= self.fir_df.drop('번호',axis=1)
-        self.fin_df.to_csv('data/koreanpc.csv', sep=',', na_rep='NaN',encoding="CP949", index=False)
+        self.fin_df.to_csv('data/생활체육정보센터.csv', sep=',', na_rep='NaN',encoding="CP949", index=False)
         print('-'*30+"dataFrame CSV파일로 저장 중"+'-'*30)
         return self.fin_df
 
@@ -305,6 +305,132 @@ class DataCrawler():
         koreanpc_df = self.make_df()
         # print(koreanpc_df)
         return koreanpc_df
+
+    ##초기 변수 셋팅
+    def initial_setting(self,sitename,col_list):
+        self.dic={}
+        self.my_columns = col_list
+        for col in self.my_columns:
+            self.dic[col]=list()
+        self.name_dic={"구분":[]}
+        self.sitename = sitename
+
+
+    ## 프로그램 사이트 url 찾기
+    def find_data(self,url,program_page=""):
+        self.html = requests.get(url+program_page).text
+        self.htmlAll = bs(self.html,'html.parser')
+
+    
+    ## dic, name_dic 변수에 데이터 추가
+    def col_append_data(self, df, grogram_name_func, current_col=[], differ_col = []):
+        for col in current_col:
+            for value in df[col]:
+                self.dic[col].append(value)
+        if len(differ_col) != 0:
+            for differ in differ_col:
+                for _ in range(len(df[col])):
+                    self.dic[differ].append("")
+        for _ in range(len(df[current_col[0]].values)):
+            self.name_dic["구분"].append(grogram_name_func)
+    
+    def dic_to_csv(self):
+        sort_columns = list(self.my_columns)
+        sort_columns.insert(0,"구분")
+        result_df = pd.DataFrame(self.dic)
+        result_df = result_df[sort_columns]
+        # result_df = result_df.dropna(axis=0)# 결측값 행 제거
+        result_df.to_csv('data/{}.csv'.format(self.sitename), sep=',', na_rep='NaN',encoding="utf-8-sig", index=False)
+
+    def sbsports(self):##서부재활체육센터
+        sitename = "서부재활체육센터"
+        my_columns = ["프로그램", "대상","참가요일","시간","회비"]
+        url = "http://www.sbsports.or.kr/sub/wrcAble.do"
+        self.initial_setting(sitename,my_columns)
+        self.find_data(url)
+        df_list = pd.read_html(self.html,header=0)
+        tb_name_list = [x.text.strip() for x in self.htmlAll.find_all("caption")]
+
+        for i in range(len(df_list)):#len(df_list)
+            ##현재 테이블의 컬럼 가져오기
+            current_col = df_list[i].columns.tolist()
+            for name in current_col:
+                df_list[i]=df_list[i].rename({name:name.replace(" ","")},axis=1)
+            current_col = df_list[i].columns.tolist()
+
+            for col in current_col:
+                if col == "비고":
+                    current_col.remove(col)
+                elif col == "구분":
+                    df_list[i]=df_list[i].rename({col:"프로그램"},axis=1)
+                    current_col.remove(col)
+                    current_col.append("프로그램")
+                elif col == "참가요일 및 시간":
+                    df_list[i]=df_list[i].rename({col:"참가요일"},axis=1)
+                    current_col.remove(col)
+                    current_col.append("참가요일")
+                elif col == "정원":
+                    current_col.remove(col)
+                elif col == "프로그램.1":
+                    current_col.remove(col)
+        
+            inter_col = list(set(self.my_columns) & set(current_col))
+            differ_col = list(set(self.my_columns).difference(current_col))
+
+            self.col_append_data(df_list[i],tb_name_list[i][:-3]+"프로그램" if tb_name_list[i].find("테이블")!=-1 else tb_name_list[i], current_col = inter_col, differ_col = differ_col)
+        self.dic.update(self.name_dic)
+        self.dic_to_csv()
+    
+    
+    def sbsd(self):#서부산권장애인스포츠센터
+        sitename = "서부산권장애인스포츠센터"
+        my_columns = ["프로그램", "시간", "대상", "요일", "사용료", "정원"]
+        url = "https://www.sbsd.kr/Home/"
+        self.initial_setting(sitename,my_columns)
+        self.find_data(url)
+        program_page = self.htmlAll.find("li",{"class":"cd1 cd1c4"}).find("a")["href"].split("/")[-1]
+        self.find_data(url,program_page=program_page)
+        pages = self.htmlAll.find('nav',{"class":"tabmenu"}).find_all("li",{"class":"cd3"})
+        programURLs = []
+        for elem in pages:
+            programURLs.append(elem.find("a")["href"].split("/")[-1])   ## 페이지 넘버
+        for i in range(len(programURLs)):
+            self.find_data(url,program_page = programURLs[i])
+            initial_df = pd.read_html(self.html,header=0)[0]
+            current_col = initial_df.columns.tolist()
+            for col in current_col:
+                if col == "교육일":
+                    initial_df = initial_df.rename({col:"요일"},axis=1)
+                    col = "요일"
+                for value in initial_df[col]:
+                    self.dic[col].append(value)
+            for _ in range(len(initial_df[current_col[0]].values)):
+                self.name_dic["구분"].append(self.htmlAll.find('div',{'class':'s_subject'}).find("p").text)
+        self.dic.update(self.name_dic)
+        self.dic_to_csv()
+    
+    
+    def bisco(self):#부산한마음스포츠센터
+        sitename = "부산한마음스포츠센터"
+        my_columns = ["프로그램","반","대상","교육일","시간","정원","교육비","비고"]
+        url = "http://hmsports.bisco.or.kr"
+        self.initial_setting(sitename,my_columns)
+        self.find_data(url)
+        program_page = self.htmlAll.find_all("li",{"class":"mn_li1"})[1].find("a")["href"]
+        self.find_data(url,program_page=program_page)
+        pages = self.htmlAll.find_all("ul",{"class":"depth2"})[-1].find_all("a")
+        programURLs = [url["href"] for url in pages]
+        del programURLs[-1]## 통합방과후학교 삭제
+        del programURLs[4]## 실내골프연습장 삭제
+        del programURLs[2]## 피트니스실 삭제      
+        for purl in programURLs:
+            self.find_data(url,program_page=purl)
+            initial_df = pd.read_html(self.html,header=0)[0]
+            current_col = initial_df.columns.tolist()
+            self.col_append_data(initial_df,self.htmlAll.find("div",{"id":"print"}).find('h4',{'class':'ctit'}).text,current_col=current_col)
+        self.dic.update(self.name_dic)
+        self.dic_to_csv()
+
 
 if __name__=='__main__':
     crawler = DataCrawler()
