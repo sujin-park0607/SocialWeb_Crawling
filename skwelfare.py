@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from django.http import response
 from html_table_parser import parser_functions as parser
 
+<<<<<<< HEAD
 
 
 url = 'http://www.skwelfare.or.kr/~swimming#'
@@ -20,6 +21,21 @@ def parser_soup(url):
 
 
 soup = parser_soup(url)
+=======
+# chrome_options = webdriver.ChromeOptions()
+# chrome_options.add_argument('--headless')
+# chrome_options.add_argument('--no-sandbox')
+# chrome_options.add_argument('--disable-dev-shm-usage')
+
+# wd =  webdriver.Chrome('chromedriver',options=chrome_options)
+# wd.implicitly_wait(10)
+
+url = 'http://www.skwelfare.or.kr/~swimming#'
+
+reponse = requests.get(url)
+html = reponse.text
+soup = BeautifulSoup(html,'html.parser')
+>>>>>>> 6af386fa8150d4516db1e0f8c41cca6c2d41244d
 
 data = soup.find('div' , {'class':'tabZone'})
 p = data.find_all('p')
@@ -52,8 +68,18 @@ df3 = pd.DataFrame(data=table3, columns = Column3)
 df = pd.concat([df1,df2,df3])
 print(df)
 
+<<<<<<< HEAD
 
 
 
 # df.to_csv(f'data/skwlfare.csv',encoding='utf-8-sig',index=False)
 # print(df)
+=======
+df.to_csv(f'data/skwlfare.csv',encoding='utf-8-sig',index=False)
+# print(df)
+# wd.find_element_by_xpath('//*[@id="tab1m2"]/a').click()
+# wd.implicitly_wait(10)
+
+
+
+>>>>>>> 6af386fa8150d4516db1e0f8c41cca6c2d41244d
