@@ -68,6 +68,10 @@ class DataCrawler():
         url = 'http://ic-sports.or.kr/bbs/page.php?hid=cont_0301'
 
         soup = self.parser_soup(url)
+            #기관, 위치, 전화번호
+        info = soup.find('ul',{'class':'infos'}).get_text().split('\n')
+        company = info[1]
+        tel = info[5].replace('Tel','')
 
         data = soup.find('table',{'class','clr_ct_tb01'})
         table = parser.make2d(data)
@@ -75,22 +79,56 @@ class DataCrawler():
             for i in range(7):
                 t[i] = t[i].replace('\r\n\t\t\t\t','')
 
-        ic_sports_df = pd.DataFrame(data = table[1:], columns = table[0])
-        ic_sports_df.to_csv('data/인천장애인국민체육센터.csv',encoding='utf-8-sig',index=False)
-        return ic_sports_df
+        programs = []
+        content = []
+        applicant = []
+
+            #데이터 컬럼에 맞게 넣기
+        for col in range(1,len(table)):
+            con = ''
+            for row in range(len(table[0])):
+                if row == 2:
+                    programs.append(table[col][row])
+                elif row == 3:
+                    applicant.append(table[col][row])
+                elif row != 1 and row !=0:
+                    con += table[col][row] + '\n'
+            content.append(con)
+
+        dict = {'Programs':programs,'Content':content,'Company':company,'Tel':tel,'Name':None,'Applicant':applicant,'Apply':None,'Url':url}
+        df = pd.DataFrame(dict)
+        df.to_csv('data/ic_sports.csv',encoding='utf-8-sig',index=False)
 
     #보건복지부 장애인정책 
     def mohw(self):
         url = 'https://www.mohw.go.kr/react/policy/index.jsp?PAR_MENU_ID=06&MENU_ID=06370109&PAGE=9'
-
         soup = self.parser_soup(url)
         data = soup.find('table')
 
+        info = soup.find('div',{'class':'f_address'}).get_text().split("/")
+        tel = info[1].replace("당직실 : ","")
+        company = "보건복지부"
         table = parser.make2d(data)
 
-        mohw_df = pd.DataFrame(data = table[1:],columns = table[0] )
-        mohw_df.to_csv(f'data/보건복지부장애인정책.csv', index=False, encoding='utf-8-sig')
-        return mohw_df
+        programs = []
+        content = []
+        applicant = []
+
+        for col in range(1,len(table)):
+            con = ''
+            for row in range(len(table[0])):
+                if row == 0:
+                    programs.append(table[col][row])
+                elif row == 1:
+                    applicant.append(table[col][row])
+                else:
+                    con += table[col][row] + '\n'
+            content.append(con)
+
+        dict = {'Programs':programs,'Content':content,'Company':company,'Tel':tel,'Name':None,'Applicant':applicant,'Apply':None,'Url':url}
+        df = pd.DataFrame(dict)
+        df.to_csv(f'data/mohw.csv', index=False, encoding='utf-8-sig')
+        return df
 
     #대구광역시 서구건강체력관 
     def skwelfare(self):
