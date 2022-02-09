@@ -6,11 +6,6 @@ from bs4 import BeautifulSoup
 from django.http import response
 from html_table_parser import parser_functions as parser
 
-<<<<<<< HEAD
-
-
-url = 'http://www.skwelfare.or.kr/~swimming#'
-
 
 
 def parser_soup(url):
@@ -19,67 +14,47 @@ def parser_soup(url):
         soup = BeautifulSoup(html,'html.parser')
         return soup
 
-
-soup = parser_soup(url)
-=======
-# chrome_options = webdriver.ChromeOptions()
-# chrome_options.add_argument('--headless')
-# chrome_options.add_argument('--no-sandbox')
-# chrome_options.add_argument('--disable-dev-shm-usage')
-
-# wd =  webdriver.Chrome('chromedriver',options=chrome_options)
-# wd.implicitly_wait(10)
+def sk_to_dict(w_content,table):
+        content = []
+        for col in range(len(table)):
+            con = '{}\n'.format(w_content)
+            for row in range(len(table[0])):
+                con += table[col][row] + '\n'
+            content.append(con)
+        return content
 
 url = 'http://www.skwelfare.or.kr/~swimming#'
-
-reponse = requests.get(url)
-html = reponse.text
-soup = BeautifulSoup(html,'html.parser')
->>>>>>> 6af386fa8150d4516db1e0f8c41cca6c2d41244d
+soup = parser_soup(url)
 
 data = soup.find('div' , {'class':'tabZone'})
-p = data.find_all('p')
+info = data.find_all('p')
+
+programs = []
 h3 = data.find_all('h3')
-
-program = data.find('h2')
-content = p[1]
-user = p[3]
-
+for i in h3:
+        programs.append(i.get_text())
+tel = soup.find('a',{'class':'tel'}).get_text().replace('(','').replace(')',' ').replace('-',' ')
+company = "대전광역시 서구건강체력관"
+user = info[3].get_text()
+w_content = info[1].get_text()
 table_data = soup.find_all('table')
 
-Column1 = ['요일','강습반명','시간','비용','프로그램']
 table1 = parser.make2d(table_data[0])
-table1[0].append(h3[0].text)
+content = sk_to_dict(w_content,table1)
 
-df1 = pd.DataFrame(data=table1, columns = Column1)
-#print(df1)
-
-Column2 = ['요일','강습반명','강습정원','시간','비용','프로그램']
 table2 = parser.make2d(table_data[1])
-table2[0].append(h3[1].text)
-df2 = pd.DataFrame(data=table2, columns = Column2)
-# print(df2)
+content2 = sk_to_dict(w_content,table2)
 
-Column3 = ['시간','비용','프로그램']
 table3 = parser.make2d(table_data[2])
-table3[0].append(h3[2].text)
-df3 = pd.DataFrame(data=table3, columns = Column3)
+content3 = sk_to_dict(w_content,table3)
 
-df = pd.concat([df1,df2,df3])
-print(df)
-
-<<<<<<< HEAD
+content = content + content2 + content3
 
 
-
-# df.to_csv(f'data/skwlfare.csv',encoding='utf-8-sig',index=False)
-# print(df)
-=======
-df.to_csv(f'data/skwlfare.csv',encoding='utf-8-sig',index=False)
-# print(df)
-# wd.find_element_by_xpath('//*[@id="tab1m2"]/a').click()
-# wd.implicitly_wait(10)
+dict = {'Programs':programs,'Content':content,'Company':company,'Tel':tel,'Name':None,'Applicant':user,'Apply':None,'Url':url}
+df = pd.DataFrame(dict)
+df.to_csv(f'data/대구서구건강체력관.csv',encoding='utf-8-sig',index=False)
 
 
 
->>>>>>> 6af386fa8150d4516db1e0f8c41cca6c2d41244d
+
